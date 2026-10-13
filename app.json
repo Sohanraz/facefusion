@@ -18,6 +18,10 @@
     }
   },
   "env": {
+    "WEB_CONCURRENCY": {
+      "description": "Keep a single web process. FaceFusion is not a multi-worker app.",
+      "value": "1"
+    },
     "FACEFUSION_OUTPUT_PATH": {
       "description": "Dyno directory where output videos and images are saved.",
       "value": "storage/output"
