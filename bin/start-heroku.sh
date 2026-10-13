@@ -4,11 +4,17 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 export WEB_CONCURRENCY=1
+export PYTHONUNBUFFERED=1
 
 OUTPUT_PATH="${FACEFUSION_OUTPUT_PATH:-storage/output}"
 TEMP_PATH="${FACEFUSION_TEMP_PATH:-storage/temp}"
 JOBS_PATH="${FACEFUSION_JOBS_PATH:-storage/jobs}"
 THREADS="${FACEFUSION_THREADS:-1}"
+
+export FACEFUSION_OUTPUT_PATH="$OUTPUT_PATH"
+export FACEFUSION_TEMP_PATH="$TEMP_PATH"
+export FACEFUSION_JOBS_PATH="$JOBS_PATH"
+export FACEFUSION_THREADS="$THREADS"
 
 mkdir -p "$OUTPUT_PATH" "$TEMP_PATH" "$JOBS_PATH" .assets
 
@@ -23,7 +29,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 port = int(os.environ.get("PORT", "7860"))
-body = b"FaceFusion is starting. ffmpeg and models download on first boot. Refresh in a few minutes.\n"
+body = b"FaceFusion is starting and downloading models. Refresh this page in a few minutes.\n"
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -82,7 +88,33 @@ echo "ffmpeg: $(command -v ffmpeg)"
 echo "ffprobe: $(command -v ffprobe)"
 ffmpeg -version | head -n 1
 
-python facefusion.py force-download --download-scope lite --execution-providers cpu || true
+# Download only the models the UI needs, while the placeholder still holds $PORT.
+# force-download does not accept --execution-providers, and run does not accept --download-scope.
+python - <<'PY'
+import os
+import sys
+
+from facefusion import state_manager
+from facefusion.args import apply_args
+from facefusion.core import common_pre_check, processors_pre_check
+from facefusion.program import create_program
+
+program = create_program()
+args = vars(program.parse_args([
+    "run",
+    "--execution-providers", "cpu",
+    "--execution-thread-count", os.environ.get("FACEFUSION_THREADS", "1"),
+    "--video-memory-strategy", "strict",
+    "--output-path", os.environ["FACEFUSION_OUTPUT_PATH"],
+    "--temp-path", os.environ["FACEFUSION_TEMP_PATH"],
+    "--jobs-path", os.environ["FACEFUSION_JOBS_PATH"],
+    "--log-level", "info",
+]))
+apply_args(args, state_manager.init_item)
+ok = common_pre_check() and processors_pre_check()
+print("model warmup: " + ("ok" if ok else "failed"), flush=True)
+sys.exit(0 if ok else 1)
+PY
 
 cleanup
 trap - EXIT
@@ -92,7 +124,6 @@ exec python facefusion.py run \
   --execution-providers cpu \
   --execution-thread-count "$THREADS" \
   --video-memory-strategy strict \
-  --download-scope lite \
   --output-path "$OUTPUT_PATH" \
   --temp-path "$TEMP_PATH" \
   --jobs-path "$JOBS_PATH" \
