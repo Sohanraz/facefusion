@@ -4,7 +4,7 @@ from functools import lru_cache
 from time import sleep, time
 from typing import List
 
-from onnxruntime import InferenceSession
+from onnxruntime import GraphOptimizationLevel, InferenceSession, SessionOptions
 
 from facefusion import logger, process_manager, state_manager, translator
 from facefusion.app_context import detect_app_context
@@ -75,12 +75,23 @@ def clear_inference_pool(module_name : str, model_names : List[str]) -> None:
 			del INFERENCE_POOL_SET[app_context][inference_context]
 
 
+def create_session_options() -> SessionOptions:
+	thread_count = state_manager.get_item('execution_thread_count') or 1
+	session_options = SessionOptions()
+	session_options.enable_cpu_mem_arena = False
+	session_options.enable_mem_pattern = False
+	session_options.intra_op_num_threads = int(thread_count)
+	session_options.inter_op_num_threads = 1
+	session_options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_BASIC
+	return session_options
+
+
 def create_inference_session(model_path : str, inference_providers : List[InferenceProvider]) -> InferenceSession:
 	model_file_name = get_file_name(model_path)
 	start_time = time()
 
 	try:
-		inference_session = InferenceSession(model_path, providers = inference_providers)
+		inference_session = InferenceSession(model_path, sess_options = create_session_options(), providers = inference_providers)
 		logger.debug(translator.get('loading_model_succeeded').format(model_name = model_file_name, seconds = calculate_end_time(start_time)), __name__)
 		return inference_session
 
