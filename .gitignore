@@ -5,3 +5,7 @@ __pycache__
 .idea
 .jobs
 .vscode
+storage/output/*
+storage/temp/*
+storage/jobs/*
+!storage/**/.gitkeep
