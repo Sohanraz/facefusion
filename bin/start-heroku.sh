@@ -5,6 +5,11 @@ cd "$(dirname "$0")/.."
 
 export WEB_CONCURRENCY=1
 export PYTHONUNBUFFERED=1
+export MALLOC_ARENA_MAX=2
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
 
 OUTPUT_PATH="${FACEFUSION_OUTPUT_PATH:-storage/output}"
 TEMP_PATH="${FACEFUSION_TEMP_PATH:-storage/temp}"
@@ -105,6 +110,13 @@ args = vars(program.parse_args([
     "--execution-providers", "cpu",
     "--execution-thread-count", os.environ.get("FACEFUSION_THREADS", "1"),
     "--video-memory-strategy", "strict",
+    "--face-detector-model", "scrfd",
+    "--face-detector-size", "160x160",
+    "--face-mask-types", "box",
+    "--processors", "face_swapper",
+    "--face-swapper-model", "hyperswap_1a_256",
+    "--face-swapper-pixel-boost", "256x256",
+    "--workflow-strategy", "memory",
     "--output-path", os.environ["FACEFUSION_OUTPUT_PATH"],
     "--temp-path", os.environ["FACEFUSION_TEMP_PATH"],
     "--jobs-path", os.environ["FACEFUSION_JOBS_PATH"],
@@ -124,6 +136,13 @@ exec python facefusion.py run \
   --execution-providers cpu \
   --execution-thread-count "$THREADS" \
   --video-memory-strategy strict \
+  --face-detector-model scrfd \
+  --face-detector-size 160x160 \
+  --face-mask-types box \
+  --processors face_swapper \
+  --face-swapper-model hyperswap_1a_256 \
+  --face-swapper-pixel-boost 256x256 \
+  --workflow-strategy memory \
   --output-path "$OUTPUT_PATH" \
   --temp-path "$TEMP_PATH" \
   --jobs-path "$JOBS_PATH" \
