@@ -1,0 +1,38 @@
+{
+  "name": "FaceFusion",
+  "description": "FaceFusion web UI. Finished videos are written on the dyno at storage/output.",
+  "repository": "https://github.com/Sohanraz/facefusion",
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku-community/apt"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "performance-m"
+    }
+  },
+  "env": {
+    "FACEFUSION_OUTPUT_PATH": {
+      "description": "Dyno directory where output videos and images are saved.",
+      "value": "storage/output"
+    },
+    "FACEFUSION_TEMP_PATH": {
+      "description": "Scratch frames while a video is processing.",
+      "value": "storage/temp"
+    },
+    "FACEFUSION_JOBS_PATH": {
+      "description": "FaceFusion job files.",
+      "value": "storage/jobs"
+    },
+    "FACEFUSION_THREADS": {
+      "description": "CPU threads. Keep this at 1 unless the dyno has several cores.",
+      "value": "1"
+    }
+  }
+}
