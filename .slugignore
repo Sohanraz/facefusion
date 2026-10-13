@@ -1,0 +1,6 @@
+tests
+.github
+.assets
+storage/output
+storage/temp
+storage/jobs
